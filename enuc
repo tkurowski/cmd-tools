@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# ENcode Uri Component
+
+query=$@
+
+# From MDN:
+# encodeURIComponent escapes all characters except the following: alphabetic, decimal digits, - _ . ! ~ * ' ( )
+
+# [^a-z\-_.!~*()']
+re_valid_char='[^a-z_\-\.!~*()'\'']'
+
+# replace <invalid-char> with \n%<invalid-char>\n,
+# then all newline-separated parts that start with %
+# represent the characters that must be escaped.
+# NOTE instead of %, other (non-space) invalid char could be used
+
+parts=`echo $query | sed 's/\('$re_valid_char'\)/\n%&\n/g'`
+
+# start encoded query
+query=""
+
+for part in $parts; do
+    # special case of space char
+    if [ $part = % ]; then 
+        part=%20
+
+    # check if part matches '%.' eg.
+    #   test ${part:0:1} = %
+    #   expr match $part '%.'
+    #   ...
+    #   (more at: http://tldp.org/LDP/abs/html/string-manipulation.html)
+    elif [ ${part:0:1} = % ]; then
+        # part=${part#%}                # get rid of the %
+        # decimal=`printf %d \'$part`   # char code decimal
+        # octal=`printf %x $decimal`    # char code octal
+        # part=%$octal
+        part=%$(printf %x `printf %d \'${part#%}`)
+    fi
+    query=$query$part
+done
+
+echo $query
